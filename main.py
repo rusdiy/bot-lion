@@ -25,7 +25,7 @@ async def on_ready():
     print("We have logged in as {0.user}".format(bot))
 
 
-@tasks.loop(seconds=5)
+@tasks.loop(time=calender_update_times)
 async def update_calendar():
     channel_calendar = bot.get_channel(1192391657690239087)
     start_date = datetime.datetime(2024, 1, 20, 6, 0, 0, tzinfo=utc)

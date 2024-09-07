@@ -2,6 +2,8 @@ import datetime
 import os
 import discord
 import traceback
+import io
+import re
 from dotenv import load_dotenv
 from discord.ext import commands, tasks
 
@@ -49,6 +51,47 @@ async def update_calendar():
         await channel_calendar.edit(name=channel_name)
     except Exception as e:
         print(e, traceback.format_exc())
+
+
+@bot.command(aliases=["scrape"])
+async def scrape_channel(ctx: commands.Context, *, args=""):
+    async with ctx.typing():
+        file = io.StringIO()
+        file.write('"Judul","Oleh","Yang di-Tag","Tanggal"\n')
+        channel_id = 1194089810579705906
+        forum_channel = bot.get_channel(channel_id)
+        for thread in forum_channel.threads:
+            thread_id = thread.id
+            thread_name = thread.name
+            thread_owner = thread.owner.name
+            message = await thread.fetch_message(thread_id)
+            date = ""
+            date_regex = re.findall(r"\d+ \w+", thread_name)
+            if len(date_regex) > 0:
+                date = date_regex[0]
+            mentioned = ", ".join([user.name for user in message.mentions])
+            file.write(
+                f'"{thread_name}","{thread_owner}","{mentioned}","{date}"\n'
+            )
+        async for thread in forum_channel.archived_threads(limit=None):
+            thread_id = thread.id
+            thread_name = thread.name
+            thread_owner = thread.owner.name
+            message = await thread.fetch_message(thread_id)
+            date = ""
+            date_regex = re.findall(r"\d+ \w+", thread_name)
+            if len(date_regex) > 0:
+                date = date_regex[0]
+            mentioned = ", ".join([user.name for user in message.mentions])
+            file.write(
+                f'"{thread_name}","{thread_owner}","{mentioned}","{date}"\n'
+            )
+        file.seek(0)
+    await ctx.send(
+        content=f"Done scraping <@{ctx.author.id}>",
+        file=discord.File(file, "scrape.csv")
+    )
+
 
 if __name__ == "__main__":
     bot.run(TOKEN)
